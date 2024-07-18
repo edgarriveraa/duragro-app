@@ -1,8 +1,12 @@
 require('dotenv').config();
+
 const apiKey = process.env.SHOPIFY_API_KEY;
 const apiSecret = process.env.SHOPIFY_API_SECRET;
 const secretKey = process.env.SHOPIFY_SECRET_KEY;
 const store = process.env.SHOP;
+const apiAgroUser = process.env.AGRO_API_USER;
+const apiAgroPass = process.env.AGRO_API_PASS;
+
 const express = require("express")
 const bodyParser = require('body-parser');
 const https = require('https');
@@ -11,6 +15,8 @@ const port = process.env.PORT || 3000;
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 const urlApi = 'https://'+apiKey+':'+apiSecret+'@'+store+'/admin/api/2021-07';
+const urlApiAgro = 'https://esaleslatam.bekaert.com:9020/AgriLogicAPI/api'
+const axios = require("axios");
 
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -21,99 +27,100 @@ app.use((req, res, next) => {
 });
 
 
-app.get('/tuAgro', (req, res) => {
+app.get('/tuAgro', async (req, res) => {
 
-  let current = '';
-  https.get('https://esaleslatam.bekaert.com:9020/AgriLogicAPI/api/ParametroCabecera?IdPais=2', (resp) => {
-    let data = '';
-    resp.on('data', (chunk) => {
-      data += chunk;
-    });
-    resp.on('end', () => {
-      data = JSON.parse(data);
-     // res.send(data);
-      data.datalist.map((item) => { 
-        if(item.Nombre == "TIPO DE CERRAMIENTO"){
-          current = item;
-         // res.send(item);
-          https.get('https://esaleslatam.bekaert.com:9020/AgriLogicAPI/api/ParametroValor?IdParametro='+item.Id+'&IdValorSeleccionado=', (resp) => {
-            let data = '';
-            resp.on('data', (chunk) => {
-              data += chunk;
-            });
-            resp.on('end', () => {
-              current.values = JSON.parse(data);
-              //res.send(asyncCall(current));
-            //  callingTuAgro(current);
-             // res.send(current);
-/*   */ 
-              current.values.datalist.map((item, node) => { 
-                
-               // console.log(node);
-                https.get('https://esaleslatam.bekaert.com:9020/AgriLogicAPI/api/ParametroAsociado?IdPais=2&IdTipoCerramiento='+item.Id, (resp) => {
-                  let data = '';
-                  resp.on('data', (chunk) => {
-                    data += chunk;
-                  });
-                  resp.on('end', () => {
-                   data = JSON.parse(data);
-                   current.values.datalist[node].values = data.datalist;
-                   // console.log(current.values.datalist[node]);
-                    if(current.values.datalist.length-1 == node){
-                   //   console.log(current);
-                      res.send(current);
-                    }
-                  });
-                });
-              });
-           
-            });
-          });
-        }
-      });
-      /*
-      function calling_3(current) {
-        return new Promise((resolve) => {
-      current.values.datalist.map((item, node) => { 
-          https.get('https://esaleslatam.bekaert.com:9020/AgriLogicAPI/api/ParametroAsociado?IdPais=2&IdTipoCerramiento='+item.Id, (resp) => {
-            let data = '';
-            resp.on('data', (chunk) => {
-              data += chunk;
-            });
-            resp.on('end', () => {
-              data = JSON.parse(data);
-              current.values.datalist[node].values = data.datalist;
-              // console.log(current.values.datalist[node]);
-              if(current.values.datalist.length-1 == node){
-              //   console.log(current);
-               // res.send(current);
-              
-              }
-            });
-          });
-        });
-        resolve(current);
-        });
-       
-      }
-      async function asyncCall(current) {
-        console.log('calling');
-        const result = await calling_3(current);
-        console.log(result);
-        // Expected output: "resolved"
-      }
-*/
-    });
-
-  }).on("error", (err) => {
-    res.send({errors: "Not Found"});
+  const response = await axios.get(urlApiAgro+'/ParametroCabecera?IdPais=2');
+  let resMain;
+  const itemsList = await response.data.datalist.map( async (item) => {
+    if(item.Nombre == "TIPO DE CERRAMIENTO"){
+     let res = await axios.get(urlApiAgro+'/ParametroValor?IdParametro='+item.Id+'&IdValorSeleccionado=');
+    resMain = item;
+     return res.data.datalist
+    }
   });
 
-/* */
+  const response2 =  await Promise.all(itemsList)
+    .then( async (item) => {
+      let info =  item[0].map( async (i)=> {
+        const list = await axios.get(urlApiAgro+'/ParametroAsociado?IdPais=2&IdTipoCerramiento='+i.Id)
+        let res = {
+          ...i,
+          ...list.data
+        }
+        let info2 = list.data.datalist.map( async (o)=> {
+          
+          const list2 = await axios.get(urlApiAgro+'/ParametroValor?IdParametro='+o.Id+'&IdValorSeleccionado=')
+          let res2 = {
+            ...o,
+            ...list2.data
+          }
+        //  console.log(res2)
+          return res2
+        })
+        /*
+        
+          */
+         console.log(info2)
+        return res
+      })
+     return info
+    })
+    .catch(error => error)
+
+  Promise.all(response2)
+    .then(data => {
+      resMain.values = data;
+     // console.log(resMain);
+      res.send(resMain);
+    })
+    .catch(err => err);
+/*
+    const response3 =  await Promise.all(response2)
+    .then( async (item) => {
+      console.log(item);
+      let info =  item[0].map( async (i)=> {
+        const list = await axios.get(urlApiAgro+'/ParametroValor?IdParametro='+i.Id+'&IdValorSeleccionado=')
+        let res = {
+          ...i,
+          ...list.data
+        }
+        return res
+      })
+     // console.log(info);
+     return info
+    })
+    .catch(error => error)
+
+    Promise.all(response3)
+    .then(data => {
+
+      console.log(data);
+    //  res.send(resMain);
+    })
+    .catch(err => err)
+*/
 
 
-//asyncCall();
+});
+app.post('/tuAgro', (req, res) => {
+  const body = req.body;
+  axios.post(urlApiAgro+'/LoginWebApi', {
+      Usuario: apiAgroUser,
+      Contrasenia: apiAgroPass
+    })
+    .then(function (response) {
+      console.log(response.data.infouser.Token);
+      res.send(response.data);
+      let token = {
+          headers: { Authorization: `Bearer ${response.data.infouser.Token}` }
+      };
+      axios.post(urlApiAgro+'/calculosauth', body, token)
+      .then(function (response) {
+        console.log(response.data);
+       // res.send(response.data);
+      });
 
+    });
 });
 app.get('/inventaryProduct', (req, res) => {
   res.send({success: "Ok"});
