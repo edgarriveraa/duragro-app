@@ -28,6 +28,15 @@ app.use((req, res, next) => {
 
 
 app.get('/tuAgro', async (req, res) => {
+  const query = req.query;
+  
+if(query.hasOwnProperty('form')){
+ // console.log(query.form);
+  const response = await axios.get(urlApiAgro+'/ParametroValor?IdParametro='+query.IdParametro+'&IdValorSeleccionado='+query.IdValorSeleccionado);
+  res.send(response.data.datalist);
+}
+else{
+ // console.log('init');
 
   const response = await axios.get(urlApiAgro+'/ParametroCabecera?IdPais=2');
   let resMain;
@@ -47,20 +56,6 @@ app.get('/tuAgro', async (req, res) => {
           ...i,
           ...list.data
         }
-        let info2 = list.data.datalist.map( async (o)=> {
-          
-          const list2 = await axios.get(urlApiAgro+'/ParametroValor?IdParametro='+o.Id+'&IdValorSeleccionado=')
-          let res2 = {
-            ...o,
-            ...list2.data
-          }
-        //  console.log(res2)
-          return res2
-        })
-        /*
-        
-          */
-         console.log(info2)
         return res
       })
      return info
@@ -69,38 +64,11 @@ app.get('/tuAgro', async (req, res) => {
 
   Promise.all(response2)
     .then(data => {
-      resMain.values = data;
-     // console.log(resMain);
+      resMain.datalist = data;
       res.send(resMain);
     })
     .catch(err => err);
-/*
-    const response3 =  await Promise.all(response2)
-    .then( async (item) => {
-      console.log(item);
-      let info =  item[0].map( async (i)=> {
-        const list = await axios.get(urlApiAgro+'/ParametroValor?IdParametro='+i.Id+'&IdValorSeleccionado=')
-        let res = {
-          ...i,
-          ...list.data
-        }
-        return res
-      })
-     // console.log(info);
-     return info
-    })
-    .catch(error => error)
-
-    Promise.all(response3)
-    .then(data => {
-
-      console.log(data);
-    //  res.send(resMain);
-    })
-    .catch(err => err)
-*/
-
-
+  }
 });
 app.post('/tuAgro', (req, res) => {
   const body = req.body;
@@ -109,14 +77,14 @@ app.post('/tuAgro', (req, res) => {
       Contrasenia: apiAgroPass
     })
     .then(function (response) {
-      console.log(response.data.infouser.Token);
-      res.send(response.data);
+     // console.log(response.data.infouser.Token);
       let token = {
           headers: { Authorization: `Bearer ${response.data.infouser.Token}` }
       };
       axios.post(urlApiAgro+'/calculosauth', body, token)
       .then(function (response) {
-        console.log(response.data);
+        res.send(response.data.datalist);
+       // console.log(response.data);
        // res.send(response.data);
       });
 
@@ -129,7 +97,7 @@ app.post('/inventaryProduct', (req, res) => {
     const body = req.body;
     //console.log(body);
     //console.log(urlApi+'/locations.json');
-    
+    // https://admin.shopify.com/store/texcowholesaleclub/api/2024-07/locations.json
     https.get(urlApi+'/variants/'+body.variant_id+'.json', (resp) => {
       let data = '';
       resp.on('data', (chunk) => {
@@ -180,5 +148,5 @@ path: 'locations',
 });
 */
 app.listen(port, () => {
-    console.log("El servidor está inicializado en el puerto 3000");
+    console.log("El servidor está inicializado http://localhost:"+port);
 });
