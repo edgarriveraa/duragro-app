@@ -9,12 +9,11 @@ const apiAgroPass = process.env.AGRO_API_PASS;
 
 const express = require("express")
 const bodyParser = require('body-parser');
-const https = require('https');
 const app = express();
 const port = process.env.PORT || 3000;
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-const urlApi = 'https://'+apiKey+':'+apiSecret+'@'+store+'/admin/api/2021-07';
+const urlApi = 'https://'+apiKey+':'+apiSecret+'@'+store+'/admin/api/2024-07';
 const urlApiAgro = 'https://esaleslatam.bekaert.com:9020/AgriLogicAPI/api'
 const axios = require("axios");
 
@@ -93,60 +92,25 @@ app.post('/tuAgro', (req, res) => {
 app.get('/inventaryProduct', (req, res) => {
   res.send({success: "Ok"});
 });
-app.post('/inventaryProduct', (req, res) => {
+
+app.post('/inventaryProduct', async (req, res) => {
     const body = req.body;
-    //console.log(body);
-    //console.log(urlApi+'/locations.json');
-    // https://admin.shopify.com/store/texcowholesaleclub/api/2024-07/locations.json
-    https.get(urlApi+'/variants/'+body.variant_id+'.json', (resp) => {
-      let data = '';
-      resp.on('data', (chunk) => {
-        data += chunk;
-      });
-      resp.on('end', () => {
-        data = JSON.parse(data);
-       
-       if ('variant' in data) {
-        https.get(urlApi+'/inventory_levels.json?inventory_item_ids='+data.variant.inventory_item_id, (resp2) => {
-          let data2 = '';
-          resp2.on('data', (chunk2) => {
-            data2 += chunk2;
-          });
-          resp2.on('end', () => {
-            data2 = JSON.parse(data2);
-            let has_location = false;
-            data2.inventory_levels.map((item) => { 
-              if(item.location_id == body.location_id){
-               // console.log(item);
-                has_location = true;
-                res.send(item);
-              }
-            });
-            if(has_location == false){
-              res.send({errors: "Not Found"});
-            }
-          });
-        }).on("error", (err) => {
-          res.send({errors: "Not Found"});
-        });
-      }
-      else{
-       // console.log(data);
-        res.send({errors: "Not Found"});
-      }
-      });
-    }).on("error", (err) => {
-      res.send({errors: "Not Found"});
-    });
+    const locations = await axios.get(urlApi+'/locations.json');
+    const currentLocation = locations.data.locations.filter((i) => i.name == body.location_name);
     
+    const response =  await Promise.all(currentLocation)
+    .then( async (item) => {
+      const variants = await axios.get(urlApi+'/variants/'+body.variant_id+'.json');
+      const inventory_item = await axios.get(urlApi+'/inventory_levels.json?inventory_item_ids='+variants.data.variant.inventory_item_id);
+      console.log(item[0])
+    let info = inventory_item.data.inventory_levels.filter((i) => i.location_id == item[0].id);
+     return info[0]
+    })
+    .catch(error => error)
+
+    res.send(response);
   });
 
-
-/*
-const data = await client.get({
-path: 'locations',
-});
-*/
 app.listen(port, () => {
     console.log("El servidor está inicializado http://localhost:"+port);
 });
