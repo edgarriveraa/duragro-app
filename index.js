@@ -102,7 +102,7 @@ app.post('/inventaryProduct', async (req, res) => {
     .then( async (item) => {
       const variants = await axios.get(urlApi+'/variants/'+body.variant_id+'.json');
       const inventory_item = await axios.get(urlApi+'/inventory_levels.json?inventory_item_ids='+variants.data.variant.inventory_item_id);
-      console.log(item[0])
+    //  console.log(item[0])
     let info = inventory_item.data.inventory_levels.filter((i) => i.location_id == item[0].id);
      return info[0]
     })
