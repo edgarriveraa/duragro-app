@@ -1,15 +1,26 @@
 require('dotenv').config();
 
+const { z, ZodError } = require('zod');
+
+const { google } = require('googleapis');
+
+
+
+
 const apiKey = process.env.SHOPIFY_API_KEY;
 const apiSecret = process.env.SHOPIFY_API_SECRET;
 const secretKey = process.env.SHOPIFY_SECRET_KEY;
 const store = process.env.SHOP;
 const apiAgroUser = process.env.AGRO_API_USER;
 const apiAgroPass = process.env.AGRO_API_PASS;
+const privateKeyId = process.env.PRIVATE_KEY.replace(/\\n/g, '\n');
+const clientEmail = process.env.CLIENT_EMAIL;
+const sheetId = process.env.SHEET_ID;
 
 const express = require("express")
 const bodyParser = require('body-parser');
 const app = express();
+
 const port = process.env.PORT || 3000;
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -17,6 +28,19 @@ const urlApi = 'https://'+apiKey+':'+apiSecret+'@'+store+'/admin/api/2024-07';
 const urlApiAgro = 'https://esaleslatam.bekaert.com:9020/AgriLogicAPI/api'
 const axios = require("axios");
 
+
+const client = new google.auth.JWT(clientEmail, null, privateKeyId, [
+  'https://www.googleapis.com/auth/spreadsheets',
+]);
+const sheets = google.sheets({ version: 'v4', auth: client });
+
+const contactFormSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1, { message: 'Name is required' }),
+  phone: z.string().min(1, { message: 'Message is required' }),
+});
+app.use(express.json());
+app.use(express.static('public'));
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Authorization, X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Allow-Request-Method');
@@ -112,7 +136,33 @@ app.post('/inventaryProduct', async (req, res) => {
     .catch(error => error)
 
     res.send(response);
-  });
+});
+app.post('/formClient', async (req, res) => {
+  try {
+    const body = contactFormSchema.parse(req.body);
+
+    // Object to Sheets
+    const rows = Object.values(body);
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: sheetId,
+      range: 'Data!A2:C2',
+      insertDataOption: 'INSERT_ROWS',
+      valueInputOption: 'RAW',
+      requestBody: {
+        values: [rows],
+      },
+    });
+
+    res.json({ message: 'Data added successfully' });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error });
+    }
+  }
+});
 
 app.listen(port, () => {
     console.log("El servidor está inicializado http://localhost:"+port);
