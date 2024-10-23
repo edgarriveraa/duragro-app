@@ -39,8 +39,8 @@ const contactFormSchema = z.object({
   name: z.string().min(1, { message: 'Name is required' }),
   phone: z.string().min(1, { message: 'Message is required' }),
 });
-app.use(express.json());
-app.use(express.static('public'));
+//app.use(express.json());
+//app.use(express.static('public'));
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Authorization, X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Allow-Request-Method');
