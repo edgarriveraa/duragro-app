@@ -13,7 +13,7 @@ const secretKey = process.env.SHOPIFY_SECRET_KEY;
 const store = process.env.SHOP;
 const apiAgroUser = process.env.AGRO_API_USER;
 const apiAgroPass = process.env.AGRO_API_PASS;
-const privateKeyId = process.env.PRIVATE_KEY.replace(/\\n/g, '\n');
+const privateKeyId = process.env.PRIVATE_KEY;
 const clientEmail = process.env.CLIENT_EMAIL;
 const sheetId = process.env.SHEET_ID;
 
@@ -24,6 +24,11 @@ const app = express();
 const port = process.env.PORT || 3000;
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+
+if (typeof privateKeyId === "string" && privateKeyId.length === 0) {
+  privateKeyId.replace(/\\n/g, '\n');
+}
+
 const urlApi = 'https://'+apiKey+':'+apiSecret+'@'+store+'/admin/api/2024-07';
 const urlApiAgro = 'https://esaleslatam.bekaert.com:9020/AgriLogicAPI/api'
 const axios = require("axios");
@@ -55,8 +60,23 @@ app.get('/tuAgro', async (req, res) => {
   
 if(query.hasOwnProperty('form')){
  // console.log(query.form);
-  const response = await axios.get(urlApiAgro+'/ParametroValor?IdParametro='+query.IdParametro+'&IdValorSeleccionado='+query.IdValorSeleccionado);
+ await axios(urlApiAgro+'/ParametroValor?IdParametro='+query.IdParametro+'&IdValorSeleccionado='+query.IdValorSeleccionado, {
+  method: 'GET',
+  mode: 'no-cors',
+  headers: {
+    'Access-Control-Allow-Origin': '*',
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true,
+  credentials: 'same-origin',
+}).then(response => {
   res.send(response.data.datalist);
+})
+/*
+  const response = await axios.get(urlApiAgro+'/ParametroValor?IdParametro='+query.IdParametro+'&IdValorSeleccionado='+query.IdValorSeleccionado);
+  console.log(response.data.errordescription);
+  res.send(response.data.datalist);
+  */
 }
 else{
  // console.log('init');
