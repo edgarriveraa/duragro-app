@@ -13,7 +13,7 @@ const secretKey = process.env.SHOPIFY_SECRET_KEY;
 const store = process.env.SHOP;
 const apiAgroUser = process.env.AGRO_API_USER;
 const apiAgroPass = process.env.AGRO_API_PASS;
-const privateKeyId = process.env.PRIVATE_KEY;
+const privateKeyId = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.replace(/\\n/g, '\n') : '';
 const clientEmail = process.env.CLIENT_EMAIL;
 const sheetId = process.env.SHEET_ID;
 
@@ -25,9 +25,6 @@ const port = process.env.PORT || 3000;
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-if (typeof privateKeyId === "string" && privateKeyId.length === 0) {
-  privateKeyId.replace(/\\n/g, '\n');
-}
 
 const urlApi = 'https://'+apiKey+':'+apiSecret+'@'+store+'/admin/api/2024-07';
 const urlApiAgro = 'https://esaleslatam.bekaert.com:9020/AgriLogicAPI/api'
@@ -44,8 +41,8 @@ const contactFormSchema = z.object({
   name: z.string().min(1, { message: 'Name is required' }),
   phone: z.string().min(1, { message: 'Message is required' }),
 });
-//app.use(express.json());
-//app.use(express.static('public'));
+app.use(express.json());
+app.use(express.static('public'));
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Authorization, X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Allow-Request-Method');
