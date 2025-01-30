@@ -68,6 +68,11 @@ if(query.hasOwnProperty('form')){
   credentials: 'same-origin',
 }).then(response => {
   res.send(response.data.datalist);
+}).catch((error) => {
+  if(error. response){
+     console.log(error. response. data);
+     console.log(error. response. status);
+    }
 })
 /*
   const response = await axios.get(urlApiAgro+'/ParametroValor?IdParametro='+query.IdParametro+'&IdValorSeleccionado='+query.IdValorSeleccionado);
