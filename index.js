@@ -82,18 +82,9 @@ else{
   let resMain;
   const itemsList = await response.data.datalist.map( async (item) => {
     if(item.Nombre == "TIPO DE CERRAMIENTO"){
-  try {
-     let res = await axios.get(urlApiAgro+'/ParametroValor?IdParametro='+item.Id+'&IdValorSeleccionado=').then((response) => {
+     let res = await axios.get(urlApiAgro+'/ParametroValor?IdParametro='+item.Id+'&IdValorSeleccionado=');
       resMain = item;
-      return response.data.datalist
-     }).catch((error) => {
-         console.log({...error})
-         return
-      });
-      return res;
-      } catch (err) {
-        console.log("received error: ", err.toJSON());
-      }
+      return res.data.datalist
     }
   });
 
