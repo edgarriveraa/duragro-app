@@ -69,9 +69,10 @@ if(query.hasOwnProperty('form')){
 }).then(response => {
   res.send(response.data.datalist);
 }).catch((error) => {
-  if(error. response){
-     console.log(error. response. data);
-     console.log(error. response. status);
+  if(error.response){
+     console.log(error.response.data);
+     console.log(error.response.status);
+     res.send(error.response);
     }
 })
 /*
